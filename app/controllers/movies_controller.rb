@@ -2,9 +2,8 @@ class MoviesController < ApplicationController
   before_action :force_index_redirect, only: [:index]
 
   def show
-    id = params[:id] # retrieve movie ID from URI route
-    @movie = Movie.find(id) # look up movie by unique ID
-    # will render app/views/movies/show.<extension> by default
+    id = params[:id]
+    @movie = Movie.find(id)
   end
 
   def index
@@ -12,13 +11,11 @@ class MoviesController < ApplicationController
     @movies = Movie.with_ratings(ratings_list, sort_by)
     @ratings_to_show_hash = ratings_hash
     @sort_by = sort_by
-    # remember the correct settings for next time
     session['ratings'] = ratings_list
     session['sort_by'] = @sort_by
   end
 
   def new
-    # default: render 'new' template
   end
 
   def create
@@ -44,6 +41,26 @@ class MoviesController < ApplicationController
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
   end
+
+  def search_tmdb
+    if params[:search_terms][:title].blank?
+      flash[:warning] = "Please fill in all required fields!"
+      redirect_to search_tmdb_movies_path
+      return
+    end
+  
+    @movies = Movie.find_in_tmdb(params[:search_terms])
+  
+    if @movies.empty?
+      flash[:notice] = "No movies found with given parameters!"
+    end
+  end
+
+  def add_movie
+    @movie = Movie.create!(params.require(:movie).permit(:title, :rating, :release_date, :description))
+    flash[:notice] = "#{@movie.title} was successfully added to RottenPotatoes."
+    redirect_to movies_path
+  end  
 
   private
 
